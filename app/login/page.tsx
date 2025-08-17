@@ -161,7 +161,7 @@ export default function LoginPage() {
             </p>
             <p className="text-sm text-gray-600">
               <Link href="/landing" className="text-purple-600 hover:underline">
-                ← Back to landing
+                ← Back to Home
               </Link>
             </p>
           </div>

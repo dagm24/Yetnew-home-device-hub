@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDevices, type Device } from "@/context/device-context";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,8 @@ export function DeviceGrid() {
     useDevices();
   const { user } = useAuth();
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 4;
   const { toast } = useToast();
   const searchParams = useSearchParams();
 
@@ -57,6 +59,19 @@ export function DeviceGrid() {
     storageBox,
   });
 
+  // Pagination calculations
+  const totalDevices = filteredDevices.length;
+  const totalPages = Math.max(1, Math.ceil(totalDevices / pageSize));
+
+  // Reset to first page when filters or devices change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, category, location, status, storageBox, devices]);
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalDevices);
+  const pagedDevices = filteredDevices.slice(startIndex, endIndex);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "working":
@@ -84,8 +99,8 @@ export function DeviceGrid() {
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mt-4 sm:mt-6">
-        {filteredDevices.length > 0 ? (
-          filteredDevices.map((device) => {
+        {totalDevices > 0 ? (
+          pagedDevices.map((device) => {
             // Get storage box info if available
             const deviceBox = device.storageBox
               ? getStorageBoxById(device.storageBox)
@@ -198,7 +213,7 @@ export function DeviceGrid() {
               </Card>
             );
           })
-        ) : (
+  ) : (
           <div className="col-span-full flex flex-col items-center justify-center p-8 sm:p-12 text-center">
             <div className="bg-purple-100 dark:bg-purple-900/20 p-6 rounded-full mb-6">
               <svg
@@ -227,6 +242,37 @@ export function DeviceGrid() {
           </div>
         )}
       </div>
+
+      {/* Pagination controls */}
+      {totalDevices > pageSize && (
+        <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Showing {startIndex + 1}–{endIndex} of {totalDevices}</div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+              Prev
+            </Button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }).map((_, i) => {
+                const page = i + 1;
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1 rounded-md text-sm ${page === currentPage ? 'bg-purple-600 text-white' : 'bg-white border border-gray-200 text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300'}`}>
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
+
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog
         open={!!selectedDevice}
